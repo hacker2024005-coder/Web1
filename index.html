@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DragonStar Shop｜龍星商城 — 十二星天面試電子答題券</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Google Fonts: Inter 與 Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', '"Inter"', 'sans-serif'],
+                    },
+                    colors: {
+                        cosmic: {
+                            950: '#070913',
+                            900: '#0d1124',
+                            800: '#151b36',
+                            700: '#1f284d',
+                        },
+                        starlight: {
+                            300: '#fde68a',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* 自訂背景星塵質感與滾動條 */
+        body {
+            background-color: #070913;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(245, 158, 11, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.07) 0%, transparent 45%),
+                radial-gradient(circle at 50% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* 微細星點裝飾 */
+        .star-pattern {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1124;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27325c;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+
+        /* 列印專用樣式：確保匯出 PDF 時呈現潔淨白底黑字、完整展開回答內容無捲軸 */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+            body {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                font-size: 11pt !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .card-container {
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                color: #0f172a !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                margin-bottom: 14px !important;
+                padding: 14px !important;
+            }
+            .header-card {
+                border-bottom: 2px solid #b45309 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+            }
+            h1, h2, h3, p, span, label {
+                color: #0f172a !important;
+            }
+            .brand-accent {
+                color: #b45309 !important;
+            }
+            .focus-badge {
+                background: #f8fafc !important;
+                border: 1px solid #94a3b8 !important;
+                color: #334155 !important;
+            }
+            input, select {
+                background: #ffffff !important;
+                border: 1px solid #94a3b8 !important;
+                color: #0f172a !important;
+            }
+            /* 隱藏原本的 textarea，改以列印專用區塊完整顯示所有換行內容 */
+            textarea.answer-input {
+                display: none !important;
+            }
+            .print-answer-mirror {
+                display: block !important;
+                white-space: pre-wrap;
+                word-break: break-word;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                padding: 10px 12px;
+                min-height: 75px;
+                background: #f8fafc !important;
+                color: #0f172a !important;
+                font-size: 10.5pt;
+                line-height: 1.6;
+                margin-top: 8px;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-200 antialiased min-h-screen star-pattern pb-20">
+
+    <!-- 頂部固定狀態列 (進度條與自動儲存提示) -->
+    <div class="sticky top-0 z-40 bg-cosmic-950/90 backdrop-blur-md border-b border-slate-800/80 shadow-lg no-print">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- 作答進度 -->
+            <div class="flex items-center gap-3 flex-1 min-w-[200px]">
+                <span class="text-xs font-semibold tracking-wider text-starlight-400 uppercase whitespace-nowrap">作答進度</span>
+                <div class="w-full max-w-[180px] h-2 bg-cosmic-800 rounded-full overflow-hidden border border-slate-700/60">
+                    <div id="progressBar" class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-300 rounded-full" style="width: 0%;"></div>
+                </div>
+                <span id="progressText" class="text-xs font-medium text-slate-300 whitespace-nowrap">0 / 5 題已填寫</span>
+            </div>
+
+            <!-- 儲存狀態與清空按鈕 -->
+            <div class="flex items-center gap-3">
+                <div id="saveStatus" class="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-2.5 py-1 rounded-full transition-opacity duration-300">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span id="saveStatusText">已自動儲存草稿</span>
+                </div>
+
+                <button type="button" id="resetBtn" class="text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 border border-rose-800/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    清空重填
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 pt-8">
+
+        <!-- 品牌與標題卡片 -->
+        <header class="header-card card-container relative overflow-hidden rounded-2xl bg-gradient-to-br from-cosmic-900 via-cosmic-800 to-cosmic-950 border border-amber-500/30 p-6 sm:p-8 shadow-2xl mb-6">
+            <!-- 右上角星辰幾何裝飾 -->
+            <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-amber-500/10 blur-2xl pointer-events-none no-print"></div>
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/60 pb-5 mb-5">
+                <div>
+                    <div class="inline-flex items-center gap-2 text-starlight-400 font-semibold tracking-widest text-xs sm:text-sm uppercase mb-1.5 brand-accent">
+                        <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        DragonStar Shop｜龍星商城
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                        十二星天管理層面試｜電子答題券
+                    </h1>
+                </div>
+                <div class="text-xs text-slate-400 sm:text-right leading-relaxed">
+                    <p>考核形式：線上深度筆試</p>
+                    <p>建議作答時間：30 - 45 分鐘</p>
+                </div>
+            </div>
+
+            <p class="text-sm text-slate-300 leading-relaxed">
+                歡迎參與 <strong class="text-starlight-300 font-semibold">DragonStar Shop｜龍星商城</strong>「十二星天」核心團隊甄選。本答題券旨在了解您的格局視野、問題拆解邏輯與團隊協作理念。系統將自動保存您的作答進度，完成後可點擊下方按鈕一鍵複製 Discord 格式或匯出 PDF 提交予考官。
+            </p>
+        </header>
+
+        <!-- 應徵者基本資料區 -->
+        <section class="card-container rounded-2xl bg-cosmic-900/90 border border-slate-800 p-6 sm:p-7 shadow-xl mb-8">
+            <div class="flex items-center gap-2.5 mb-5">
+                <span class="w-1.5 h-5 bg-amber-400 rounded-full"></span>
+                <h2 class="text-lg font-bold text-white">應徵者基本資料</h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <!-- Discord ID / 暱稱 -->
+                <div>
+                    <label for="candidateName" class="block text-xs font-semibold text-slate-300 mb-2">
+                        應徵者 Discord ID / 暱稱 <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="text" id="candidateName" placeholder="例如：dragon_star#0001 或 暱稱"
+                        class="w-full rounded-xl bg-cosmic-950 border border-slate-700/80 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:outline-none transition-all">
+                </div>
+
+                <!-- 面試日期 -->
+                <div>
+                    <label for="interviewDate" class="block text-xs font-semibold text-slate-300 mb-2">
+                        面試日期 <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="date" id="interviewDate"
+                        class="w-full rounded-xl bg-cosmic-950 border border-slate-700/80 px-3.5 py-2.5 text-sm text-white focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:outline-none transition-all">
+                </div>
+
+                <!-- 目標星位 / 職位 -->
+                <div>
+                    <label for="targetRole" class="block text-xs font-semibold text-slate-300 mb-2">
+                        目標星位 / 職位 <span class="text-rose-400">*</span>
+                    </label>
+                    <select id="targetRole"
+                        class="w-full rounded-xl bg-cosmic-950 border border-slate-700/80 px-3.5 py-2.5 text-sm text-white focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:outline-none transition-all">
+                        <option value="十二星天管理層">十二星天管理層</option>
+                        <option value="客服專員">客服專員</option>
+                        <option value="實習生">實習生</option>
+                        <option value="社群營運／企劃">社群營運／企劃</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- 五大面試題目區 (由 JS 動態渲染並綁定自動儲存與字數計算) -->
+        <section id="questionsContainer" class="space-y-6">
+            <!-- 題目卡片將自動生成於此 -->
+        </section>
+
+        <!-- 底部操作按鈕區 -->
+        <section class="mt-10 rounded-2xl bg-gradient-to-r from-cosmic-900 to-cosmic-800 border border-amber-500/30 p-6 sm:p-8 shadow-2xl no-print">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <span>提交與匯出答卷</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                        建議先點擊「一鍵複製完整答卷」直接貼上至 Discord 面試頻道，或匯出 PDF / TXT 檔案備份。
+                    </p>
+                </div>
+                <div class="text-xs text-amber-300/90 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 rounded-lg">
+                    總字數統計：<span id="totalCharCount" class="font-bold text-amber-400">0</span> 字
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <!-- 一鍵複製完整答卷 -->
+                <button type="button" id="copyDiscordBtn"
+                    class="sm:col-span-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-cosmic-950 font-bold text-sm px-5 py-3.5 shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                    </svg>
+                    一鍵複製完整答卷
+                </button>
+
+                <!-- 匯出 / 列印為 PDF -->
+                <button type="button" id="printPdfBtn"
+                    class="flex items-center justify-center gap-2 rounded-xl bg-cosmic-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-sm px-5 py-3.5 transition-all active:scale-[0.98]">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    匯出 / 列印為 PDF
+                </button>
+
+                <!-- 下載文字檔 (.txt) -->
+                <button type="button" id="downloadTxtBtn"
+                    class="flex items-center justify-center gap-2 rounded-xl bg-cosmic-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-sm px-5 py-3.5 transition-all active:scale-[0.98]">
+                    <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    下載文字檔 (.txt)
+                </button>
+            </div>
+        </section>
+
+        <!-- 頁尾版權 -->
+        <footer class="mt-8 text-center text-xs text-slate-500">
+            <p>© DragonStar Shop｜龍星商城 — 十二星天人才甄選系統</p>
+        </footer>
+    </main>
+
+    <!-- 自訂提示訊息 Toast (不使用 alert) -->
+    <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 no-print">
+        <div class="flex items-center gap-3 bg-cosmic-900 border border-amber-400/60 text-white px-4 py-3 rounded-xl shadow-2xl">
+            <div id="toastIcon" class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <p id="toastMessage" class="text-sm font-medium">操作成功！</p>
+        </div>
+    </div>
+
+    <!-- 自訂清空重填確認視窗 Modal (不使用 confirm) -->
+    <div id="resetModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4 no-print">
+        <div class="bg-cosmic-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex items-center gap-3 text-rose-400 mb-3">
+                <div class="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-white">確定要清空所有作答內容嗎？</h3>
+            </div>
+            <p class="text-sm text-slate-300 leading-relaxed mb-6">
+                此操作將會清除您目前填寫的個人資料、五道題目的回答內容以及本機自動儲存的草稿，且無法復原。
+            </p>
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" id="cancelResetBtn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
+                    取消保留
+                </button>
+                <button type="button" id="confirmResetBtn" class="px-4 py-2 rounded-xl text-sm font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 transition-colors">
+                    確定清空重填
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 題庫資料定義
+        const QUESTIONS = [
+            {
+                id: 'q1',
+                title: '第一題｜定位與自我認知（本命星垣）',
+                prompt: '請分享你的核心優勢，以及在團隊中最適合擔任的角色定位。',
+                focus: '自我剖析、核心優勢及團隊角色定位。',
+                placeholder: '請在此詳細闡述您的核心能力、過往經驗亮點，以及您在團隊中最擅長發揮的角色定位...'
+            },
+            {
+                id: 'q2',
+                title: '第二題｜跨界協作與資源整合（群星輝映）',
+                prompt: '在處理跨部門或團隊意見分歧時，你會如何進行溝通協調並整合資源達成共識？',
+                focus: '溝通協調能力、衝突化解技巧與大局觀。',
+                placeholder: '請分享您的溝通原則、化解分歧的具體步驟，或過去成功協調多方夥伴達成目標的案例...'
+            },
+            {
+                id: 'q3',
+                title: '第三題｜逆境應變與抗壓韌性（星軌偏移）',
+                prompt: '當面對突發客訴、系統故障或業務危機時，你的應變邏輯與處理優先順序為何？',
+                focus: '面對突發危機時的應變邏輯與抗壓素質。',
+                placeholder: '請說明您在危機發生當下的情緒控管、問題拆解與排程優先級（如止損、安撫、復盤等）...'
+            },
+            {
+                id: 'q4',
+                title: '第四題｜創新突破與邊界探索（拓荒新域）',
+                prompt: '隨著商城轉型與社群發展，你認為有哪些可以打破常規的創新點或具體落地執行方案？',
+                focus: '打破常規的前瞻思維與方案落地執行力。',
+                placeholder: '請提出您對龍星商城在社群互動、營運流程或服務體驗上的創新構想與實際執行步驟...'
+            },
+            {
+                id: 'q5',
+                title: '第五題｜長遠願景與價值契合（星河共赴）',
+                prompt: '請談談你未來三至五年的個人規劃，以及你最看重的團隊價值觀，為何選擇加入龍星商城？',
+                focus: '未來規劃、價值觀取捨及長期契合度。',
+                placeholder: '請分享您的中長期職涯願景、您所堅持的核心價值觀，以及對加入龍星商城的期待...'
+            }
+        ];
+
+        const STORAGE_KEY = 'dragonstar_twelve_star_sky_interview_v1';
+
+        // 取得今日 YYYY-MM-DD 格式字串
+        function getTodayString() {
+            const now = new Date();
+            const offset = now.getTimezoneOffset() * 60000;
+            return new Date(now.getTime() - offset).toISOString().split('T')[0];
+        }
+
+        // 顯示自訂 Toast 通知
+        let toastTimer = null;
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+
+            msgEl.textContent = message;
+            if (isError) {
+                iconEl.className = 'w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0';
+                iconEl.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+            } else {
+                iconEl.className = 'w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0';
+                iconEl.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3200);
+        }
+
+        // 動態渲染五大面試題目卡片
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = QUESTIONS.map((q, index) => `
+                <article class="card-container rounded-2xl bg-cosmic-900/90 border border-slate-800 hover:border-slate-700/90 p-6 sm:p-7 shadow-xl transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <h3 class="text-base sm:text-lg font-bold text-starlight-400 brand-accent">
+                            ${q.title}
+                        </h3>
+                        <span id="status-${q.id}" class="inline-flex items-center self-start sm:self-auto text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 no-print">
+                            未作答
+                        </span>
+                    </div>
+
+                    <p class="text-sm sm:text-base text-white font-medium leading-relaxed mb-3.5">
+                        「${q.prompt}」
+                    </p>
+
+                    <div class="focus-badge inline-flex items-start sm:items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-xs text-amber-200/90 mb-4">
+                        <span class="font-bold text-amber-400 shrink-0">觀察重點：</span>
+                        <span>${q.focus}</span>
+                    </div>
+
+                    <div class="relative">
+                        <textarea id="${q.id}" rows="5" placeholder="${q.placeholder}"
+                            class="answer-input w-full rounded-xl bg-cosmic-950 border border-slate-700/80 p-4 text-sm text-slate-100 placeholder-slate-500 leading-relaxed focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:outline-none transition-all resize-y"></textarea>
+                        
+                        <!-- 列印 PDF 時顯示的完整展開鏡像區塊 -->
+                        <div id="print-${q.id}" class="print-answer-mirror hidden">（未填寫回答）</div>
+
+                        <div class="flex items-center justify-between mt-2 text-xs text-slate-400 no-print">
+                            <span>支援分段詳述，系統將自動儲存您的輸入</span>
+                            <span>字數：<strong id="count-${q.id}" class="text-slate-200 font-semibold">0</strong> 字</span>
+                        </div>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        // 更新字數統計、完成度進度條與列印鏡像內容
+        function updateStatsAndMirrors() {
+            let answeredCount = 0;
+            let totalChars = 0;
+
+            QUESTIONS.forEach(q => {
+                const textarea = document.getElementById(q.id);
+                const countEl = document.getElementById(`count-${q.id}`);
+                const statusEl = document.getElementById(`status-${q.id}`);
+                const printMirrorEl = document.getElementById(`print-${q.id}`);
+
+                const rawText = textarea.value;
+                const trimmedLength = rawText.trim().length;
+                // 計算非空白字元數（亦包含標點符號與中英文字）
+                const charCount = rawText.replace(/\s/g, '').length;
+
+                countEl.textContent = charCount;
+                totalChars += charCount;
+
+                // 同步更新列印鏡像區塊
+                printMirrorEl.textContent = trimmedLength > 0 ? rawText : '（未填寫回答）';
+
+                if (trimmedLength > 0) {
+                    answeredCount++;
+                    statusEl.textContent = '已填寫';
+                    statusEl.className = 'inline-flex items-center self-start sm:self-auto text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-950/70 text-emerald-400 border border-emerald-700/60 no-print';
+                } else {
+                    statusEl.textContent = '未作答';
+                    statusEl.className = 'inline-flex items-center self-start sm:self-auto text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 no-print';
+                }
+            });
+
+            // 更新頂部進度條
+            const percentage = (answeredCount / QUESTIONS.length) * 100;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${answeredCount} / ${QUESTIONS.length} 題已填寫`;
+            document.getElementById('totalCharCount').textContent = totalChars;
+        }
+
+        // 自動儲存至 localStorage
+        let saveIndicatorTimer = null;
+        function saveDraft() {
+            try {
+                const data = {
+                    candidateName: document.getElementById('candidateName').value,
+                    interviewDate: document.getElementById('interviewDate').value,
+                    targetRole: document.getElementById('targetRole').value,
+                    answers: {}
+                };
+
+                QUESTIONS.forEach(q => {
+                    data.answers[q.id] = document.getElementById(q.id).value;
+                });
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+                // 顯示儲存動畫回饋
+                const statusText = document.getElementById('saveStatusText');
+                statusText.textContent = '儲存中...';
+                clearTimeout(saveIndicatorTimer);
+                saveIndicatorTimer = setTimeout(() => {
+                    statusText.textContent = '已自動儲存草稿';
+                }, 400);
+            } catch (e) {
+                console.warn('無法寫入 localStorage:', e);
+            }
+        }
+
+        // 載入 localStorage 草稿
+        function loadDraft() {
+            const dateInput = document.getElementById('interviewDate');
+            dateInput.value = getTodayString();
+
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.candidateName) document.getElementById('candidateName').value = data.candidateName;
+                    if (data.interviewDate) dateInput.value = data.interviewDate;
+                    if (data.targetRole) document.getElementById('targetRole').value = data.targetRole;
+
+                    if (data.answers) {
+                        QUESTIONS.forEach(q => {
+                            if (data.answers[q.id] !== undefined) {
+                                document.getElementById(q.id).value = data.answers[q.id];
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('讀取草稿失敗:', e);
+            }
+
+            updateStatsAndMirrors();
+        }
+
+        // 組合完整答卷純文字 / Discord Markdown 格式
+        function generateFormattedOutput(forDiscord = true) {
+            const name = document.getElementById('candidateName').value.trim() || '（未填寫）';
+            const date = document.getElementById('interviewDate').value || getTodayString();
+            const role = document.getElementById('targetRole').value || '十二星天管理層';
+
+            if (forDiscord) {
+                let lines = [
+                    `🌟 **DragonStar Shop｜龍星商城 — 十二星天管理層面試答卷** 🌟`,
+                    `> **應徵者 Discord ID / 暱稱：** ${name}`,
+                    `> **面試日期：** ${date}`,
+                    `> **目標星位 / 職位：** ${role}`,
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+                ];
+
+                QUESTIONS.forEach(q => {
+                    const ans = document.getElementById(q.id).value.trim() || '（未填寫回答）';
+                    lines.push(`\n**${q.title}**`);
+                    lines.push(`*題目：${q.prompt}*`);
+                    lines.push(`\`\`\`\n${ans}\n\`\`\``);
+                });
+
+                lines.push(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                lines.push(`✨ *本答卷由 DragonStar Shop 十二星天電子答題系統生成*`);
+                return lines.join('\n');
+            } else {
+                let lines = [
+                    `============================================================`,
+                    `DragonStar Shop｜龍星商城 — 十二星天管理層面試答卷`,
+                    `============================================================`,
+                    `應徵者 Discord ID / 暱稱：${name}`,
+                    `面試日期：${date}`,
+                    `目標星位 / 職位：${role}`,
+                    `------------------------------------------------------------\n`
+                ];
+
+                QUESTIONS.forEach(q => {
+                    const ans = document.getElementById(q.id).value.trim() || '（未填寫回答）';
+                    lines.push(`【${q.title}】`);
+                    lines.push(`題目：${q.prompt}`);
+                    lines.push(`觀察重點：${q.focus}`);
+                    lines.push(`應徵者回答：\n${ans}`);
+                    lines.push(`\n------------------------------------------------------------\n`);
+                });
+
+                return lines.join('\n');
+            }
+        }
+
+        // 複製文字至剪貼簿 (相容 iFrame 環境)
+        function copyToClipboard(text) {
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = text;
+            tempTextArea.style.position = 'fixed';
+            tempTextArea.style.left = '-9999px';
+            tempTextArea.style.top = '0';
+            document.body.appendChild(tempTextArea);
+            tempTextArea.focus();
+            tempTextArea.select();
+
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (err) {
+                success = false;
+            }
+            document.body.removeChild(tempTextArea);
+
+            if (success) {
+                showToast('已複製完整 Discord 格式答卷至剪貼簿！');
+            } else {
+                showToast('複製失敗，請手動選取或改用下載文字檔功能。', true);
+            }
+        }
+
+        // 下載為 .txt 檔案
+        function downloadTxtFile() {
+            const name = document.getElementById('candidateName').value.trim() || '應徵者';
+            const date = document.getElementById('interviewDate').value || getTodayString();
+            const content = generateFormattedOutput(false);
+
+            const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `龍星商城_十二星天面試答卷_${name}_${date}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('已成功下載答卷文字檔 (.txt)！');
+        }
+
+        // 初始化事件監聽
+        document.addEventListener('DOMContentLoaded', () => {
+            renderQuestions();
+            loadDraft();
+
+            // 綁定所有輸入框即時更新與儲存
+            const inputs = [
+                document.getElementById('candidateName'),
+                document.getElementById('interviewDate'),
+                document.getElementById('targetRole'),
+                ...QUESTIONS.map(q => document.getElementById(q.id))
+            ];
+
+            inputs.forEach(el => {
+                el.addEventListener('input', () => {
+                    updateStatsAndMirrors();
+                    saveDraft();
+                });
+                el.addEventListener('change', () => {
+                    updateStatsAndMirrors();
+                    saveDraft();
+                });
+            });
+
+            // 一鍵複製按鈕
+            document.getElementById('copyDiscordBtn').addEventListener('click', () => {
+                const formatted = generateFormattedOutput(true);
+                copyToClipboard(formatted);
+            });
+
+            // 匯出 / 列印為 PDF 按鈕
+            document.getElementById('printPdfBtn').addEventListener('click', () => {
+                updateStatsAndMirrors();
+                window.print();
+            });
+
+            // 下載文字檔按鈕
+            document.getElementById('downloadTxtBtn').addEventListener('click', () => {
+                downloadTxtFile();
+            });
+
+            // 清空重填確認視窗控制
+            const resetModal = document.getElementById('resetModal');
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                resetModal.classList.remove('hidden');
+                resetModal.classList.add('flex');
+            });
+
+            document.getElementById('cancelResetBtn').addEventListener('click', () => {
+                resetModal.classList.add('hidden');
+                resetModal.classList.remove('flex');
+            });
+
+            document.getElementById('confirmResetBtn').addEventListener('click', () => {
+                localStorage.removeItem(STORAGE_KEY);
+                document.getElementById('candidateName').value = '';
+                document.getElementById('interviewDate').value = getTodayString();
+                document.getElementById('targetRole').value = '十二星天管理層';
+                QUESTIONS.forEach(q => {
+                    document.getElementById(q.id).value = '';
+                });
+                updateStatsAndMirrors();
+                resetModal.classList.add('hidden');
+                resetModal.classList.remove('flex');
+                showToast('已清空所有作答內容與草稿！');
+            });
+        });
+    </script>
+</body>
+</html>
